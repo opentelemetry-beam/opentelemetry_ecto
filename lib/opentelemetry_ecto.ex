@@ -23,8 +23,8 @@ defmodule OpentelemetryEcto do
       `"blog.repo.query"`. This will always be followed with a colon and the
       source (the table name for SQL adapters).
   """
-  def setup(event_name, config \\ []) do
-    event = event_name ++ [:query]
+  def setup(event_prefix, config \\ []) do
+    event = event_prefix ++ [:query]
     :telemetry.attach({__MODULE__, event}, event, &__MODULE__.handle_event/4, config)
   end
 
