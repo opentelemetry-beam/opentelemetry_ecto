@@ -43,7 +43,7 @@ defmodule OpentelemetryEcto do
 
     url = case repo.config()[:url] do
             nil ->
-              "ecto://" <> repo.config()[:hostname] # TODO: add port
+              URI.to_string(%URI{scheme: "ecto", host: repo.config()[:hostname]})  # TODO: add port
             url ->
               url
           end
