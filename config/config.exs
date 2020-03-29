@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure your application as:
 #
-#     config :opencensus_ecto, key: :value
+#     config :opentelemetry_ecto, key: :value
 #
 # and access this configuration in your application as:
 #
-#     Application.get_env(:opencensus_ecto, :key)
+#     Application.get_env(:opentelemetry_ecto, :key)
 #
 # You can also configure a third-party app:
 #
