@@ -36,7 +36,7 @@ defmodule OpentelemetryEcto do
     # Doing all this even if the span isn't sampled so the sampler
     # could technically use the attributes to decide if it should sample or not
 
-    total_time = measurements[:total_time]
+    total_time = measurements.total_time
     end_time = :opentelemetry.timestamp()
     start_time = end_time - total_time
     database = repo.config()[:database]
