@@ -4,7 +4,7 @@ defmodule OpentelemetryEctoTest do
   require OpenTelemetry.Tracer
   use ExUnit.Case
 
-  @event_name [:opentelemetry_ecto, :test_repo, :query]
+  @event_name [:opentelemetry_ecto, :test_repo]
 
   require Record
 
@@ -86,7 +86,7 @@ defmodule OpentelemetryEctoTest do
     # For now setup the handler manually in each test
     handler = {__MODULE__, self()}
 
-    :telemetry.attach(handler, @event_name, &OpentelemetryEcto.handle_event/4, config)
+    :telemetry.attach(handler, @event_name ++ [:query], &OpentelemetryEcto.handle_event/4, config)
 
     on_exit(fn ->
       :telemetry.detach(handler)

@@ -11,7 +11,7 @@ defmodule OpentelemetryEcto do
 
   Example:
 
-      OpentelemetryEcto.setup([:blog, :repo, :query])
+      OpentelemetryEcto.setup([:blog, :repo])
 
   You may also supply the following options in the second argument:
 
@@ -24,7 +24,8 @@ defmodule OpentelemetryEcto do
       source (the table name for SQL adapters).
   """
   def setup(event_name, config \\ []) do
-    :telemetry.attach({__MODULE__, event_name}, event_name, &__MODULE__.handle_event/4, config)
+    event = event_name ++ [:query]
+    :telemetry.attach({__MODULE__, event}, event, &__MODULE__.handle_event/4, config)
   end
 
   @doc false
