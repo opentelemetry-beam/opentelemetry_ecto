@@ -6,7 +6,7 @@ defmodule OpentelemetryEcto do
   require OpenTelemetry.Tracer
 
   @doc """
-  Attaches the OpencensusEcto handler to your repo events. This should be called
+  Attaches the OpentelemetryEcto handler to your repo events. This should be called
   from your application behaviour on startup.
 
   Example:
