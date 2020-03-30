@@ -42,7 +42,7 @@ defmodule OpentelemetryEcto.MixProject do
     [
       {:telemetry, "~> 0.4.0"},
       {:opentelemetry_api, "~> 0.3.1"},
-      {:opentelemetry, "~> 0.3.0"},
+      {:opentelemetry, "~> 0.4.0"},
       {:ex_doc, "~> 0.21.0", only: [:dev], runtime: false},
       {:ecto_sql, ">= 3.0.0", only: [:test]},
       {:postgrex, ">= 0.15.0", only: [:test]}
