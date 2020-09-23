@@ -29,17 +29,23 @@ defmodule OpentelemetryEctoTest do
 
     Repo.all(User)
 
-    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users",
-                                attributes: list)}
-    assert [{"db.instance", "opentelemetry_ecto_test"},
-            {"db.statement", "SELECT u0.\"id\", u0.\"email\" FROM \"users\" AS u0"},
-            {"db.type", "sql"},
-            {"db.url", "ecto://localhost"},
-            {"decode_time_microseconds", _},
-            {"query_time_microseconds", _},
-            {"queue_time_microseconds", _},
-            {"source", "users"},
-            {"total_time_microseconds", _}] = List.keysort(list, 0)
+    assert_receive {:span,
+                    span(
+                      name: "opentelemetry_ecto.test_repo.query:users",
+                      attributes: list
+                    )}
+
+    assert [
+             "db.instance": "opentelemetry_ecto_test",
+             "db.statement": "SELECT u0.\"id\", u0.\"email\" FROM \"users\" AS u0",
+             "db.type": :sql,
+             "db.url": "ecto://localhost",
+             decode_time_microseconds: _,
+             query_time_microseconds: _,
+             queue_time_microseconds: _,
+             source: "users",
+             total_time_microseconds: _
+           ] = List.keysort(list, 0)
   end
 
   test "changes the time unit" do
@@ -47,17 +53,23 @@ defmodule OpentelemetryEctoTest do
 
     Repo.all(Post)
 
-    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts",
-                                attributes: list)}
-    assert [{"db.instance", "opentelemetry_ecto_test"},
-            {"db.statement", "SELECT p0.\"id\", p0.\"body\", p0.\"user_id\" FROM \"posts\" AS p0"},
-            {"db.type", "sql"},
-            {"db.url", "ecto://localhost"},
-            {"decode_time_milliseconds", _},
-            {"query_time_milliseconds", _},
-            {"queue_time_milliseconds", _},
-            {"source", "posts"},
-            {"total_time_milliseconds", _}] = List.keysort(list, 0)
+    assert_receive {:span,
+                    span(
+                      name: "opentelemetry_ecto.test_repo.query:posts",
+                      attributes: list
+                    )}
+
+    assert [
+             "db.instance": "opentelemetry_ecto_test",
+             "db.statement": "SELECT p0.\"id\", p0.\"body\", p0.\"user_id\" FROM \"posts\" AS p0",
+             "db.type": :sql,
+             "db.url": "ecto://localhost",
+             decode_time_milliseconds: _,
+             query_time_milliseconds: _,
+             queue_time_milliseconds: _,
+             source: "posts",
+             total_time_milliseconds: _
+           ] = List.keysort(list, 0)
   end
 
   test "changes the span name prefix" do

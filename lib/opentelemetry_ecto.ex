@@ -45,12 +45,15 @@ defmodule OpentelemetryEcto do
     start_time = end_time - total_time
     database = repo.config()[:database]
 
-    url = case repo.config()[:url] do
-            nil ->
-              URI.to_string(%URI{scheme: "ecto", host: repo.config()[:hostname]})  # TODO: add port
-            url ->
-              url
-          end
+    url =
+      case repo.config()[:url] do
+        nil ->
+          # TODO: add port
+          URI.to_string(%URI{scheme: "ecto", host: repo.config()[:hostname]})
+
+        url ->
+          url
+      end
 
     span_name =
       case Keyword.fetch(config, :span_prefix) do
@@ -60,24 +63,29 @@ defmodule OpentelemetryEcto do
 
     time_unit = Keyword.get(config, :time_unit, :microsecond)
 
+    db_type =
+      case type do
+        :ecto_sql_query -> :sql
+        _ -> type
+      end
+
+    result =
+      case query_result do
+        {:ok, _} -> []
+        _ -> [error: true]
+      end
+
     # TODO: need connection information to complete the required attributes
     # net.peer.name or net.peer.ip and net.peer.port
     base_attributes =
-      [
-        {"db.type", case type do
-                      :ecto_sql_query -> "sql"
-                      _ -> Atom.to_string(type)
-                    end},
-        {"db.statement", query},
-        {"source", source},
-        {"db.instance", database},
-        {"db.url", url},
-        {"total_time_#{time_unit}s", System.convert_time_unit(total_time, :native, time_unit)}
-        |  case query_result do
-             {:ok, _} -> []
-             _ -> [{"error", true}]
-           end
-      ]
+      Keyword.merge(result,
+        "db.type": db_type,
+        "db.statement": query,
+        source: source,
+        "db.instance": database,
+        "db.url": url,
+        "total_time_#{time_unit}s": System.convert_time_unit(total_time, :native, time_unit)
+      )
 
     attributes =
       measurements
@@ -85,11 +93,12 @@ defmodule OpentelemetryEcto do
       |> Map.take(~w(decode_time query_time queue_time)a)
       |> Enum.reject(&is_nil(elem(&1, 1)))
       |> Enum.map(fn {k, v} ->
-      {"#{k}_#{time_unit}s", System.convert_time_unit(v, :native, time_unit)}
-    end)
+        {"#{k}_#{time_unit}s", System.convert_time_unit(v, :native, time_unit)}
+      end)
 
-    OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time,
-                                                 attributes: attributes ++ base_attributes})
+      OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time,
+                                                   attributes: attributes ++ base_attributes})
+
     OpenTelemetry.Tracer.end_span()
   end
 end
