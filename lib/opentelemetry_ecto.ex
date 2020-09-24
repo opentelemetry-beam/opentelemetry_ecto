@@ -93,7 +93,7 @@ defmodule OpentelemetryEcto do
       |> Map.take(~w(decode_time query_time queue_time)a)
       |> Enum.reject(&is_nil(elem(&1, 1)))
       |> Enum.map(fn {k, v} ->
-        {"#{k}_#{time_unit}s", System.convert_time_unit(v, :native, time_unit)}
+        {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
       OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time,
