@@ -8,14 +8,13 @@ defmodule OpentelemetryEctoTest do
 
   require Record
 
-  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/ot_span.hrl") do
+  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/otel_span.hrl") do
     Record.defrecord(name, spec)
   end
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OpentelemetryEcto.TestRepo)
-
-    :ot_batch_processor.set_exporter(:ot_exporter_pid, self())
+    :otel_batch_processor.set_exporter(:otel_exporter_pid, self())
 
     OpenTelemetry.Tracer.start_span("test")
 
