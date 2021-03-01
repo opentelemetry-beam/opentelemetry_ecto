@@ -22,11 +22,11 @@ jobs:
           POSTGRES_DB: opentelemetry_ecto_test
 
     steps:
-    - uses: actions/checkout@v1.0.0
-    - uses: actions/setup-elixir@v1.0.0
+    - uses: actions/checkout@v2
+    - uses: erlef/setup-elixir@v1
       with:
-        otp-version: 22.x
-        elixir-version: 1.9.x
+        otp-version: '22.x'
+        elixir-version: '1.9.x'
     - name: Fetch deps
       run: mix deps.get
     - name: Run tests
