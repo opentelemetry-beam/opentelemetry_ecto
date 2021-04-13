@@ -23,7 +23,7 @@ by adding `opentelemetry_ecto` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:opentelemetry_ecto, "~> 0.6.0"}
+    {:opentelemetry_ecto, "~> 1.0.0-rc", allow_pre: true}
   ]
 end
 ```
