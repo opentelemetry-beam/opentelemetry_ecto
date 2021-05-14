@@ -23,7 +23,11 @@ defmodule OpentelemetryEcto.MixProject do
   defp package do
     [
       licenses: ["Apache-2"],
-      links: %{"GitHub" => "https://github.com/opentelemetry-beam/opentelemetry_ecto"}
+      links: %{
+        "GitHub" => "https://github.com/opentelemetry-beam/opentelemetry_ecto",
+        "OpenTelemetry Erlang" => "https://github.com/open-telemetry/opentelemetry-erlang",
+        "OpenTelemetry.io" => "https://opentelemetry.io"
+      }
     ]
   end
 
@@ -41,9 +45,9 @@ defmodule OpentelemetryEcto.MixProject do
   defp deps do
     [
       {:telemetry, "~> 0.4.2"},
-      {:opentelemetry_api, "~> 1.0.0-rc", allow_pre: true},
-      {:opentelemetry, "~> 1.0.0-rc", allow_pre: true},
-      {:ex_doc, "~> 0.21.0", only: [:dev], runtime: false},
+      {:opentelemetry_api, "~> 1.0.0-rc"},
+      {:opentelemetry, "~> 1.0.0-rc"},
+      {:ex_doc, "~> 0.24.0", only: [:dev], runtime: false},
       {:ecto_sql, ">= 3.0.0", only: [:test]},
       {:postgrex, ">= 0.15.0", only: [:test]}
     ]
