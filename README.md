@@ -9,7 +9,7 @@ After installing, setup the handler in your application behaviour before your
 top-level supervisor starts.
 
 ```elixir
-OpentelemetryEcto.setup([:blog, :repo, :query])
+OpentelemetryEcto.setup([:blog, :repo])
 ```
 
 See the documentation for `OpentelemetryEcto.setup/2` for additional options that
