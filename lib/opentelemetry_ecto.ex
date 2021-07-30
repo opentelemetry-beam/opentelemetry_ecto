@@ -97,8 +97,48 @@ defmodule OpentelemetryEcto do
         {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
+    parent_context_attached = maybe_attach_parent_context()
+
     s = OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time, attributes: attributes ++ base_attributes})
 
     OpenTelemetry.Span.end_span(s)
+
+    if parent_context_attached do
+      OpenTelemetry.Ctx.clear()
+    end
+  end
+
+  defp maybe_attach_parent_context do
+    with :ok <- with_no_context_set?(),
+         {:ok, parent_pid} <- with_parent_pid(),
+         {:ok, parent_context} <- with_parent_otel_context(parent_pid) do
+      OpenTelemetry.Ctx.attach(parent_context)
+      true
+    end
+  end
+
+  defp with_no_context_set? do
+    if OpenTelemetry.Ctx.get_current() |> map_size() == 0 do
+      :ok
+    else
+      false
+    end
+  end
+
+  defp with_parent_pid do
+    case Process.get(:"$callers") do
+      [parent_pid | _] when is_pid(parent_pid) -> {:ok, parent_pid}
+      _ -> false
+    end
+  end
+
+  defp with_parent_otel_context(parent_pid) do
+    parent_ctx = Process.info(parent_pid) |> Keyword.get(:dictionary) |> Keyword.get(:"$__current_otel_ctx")
+
+    if is_map(parent_ctx) and map_size(parent_ctx) > 0 do
+      {:ok, parent_ctx}
+    else
+      false
+    end
   end
 end
