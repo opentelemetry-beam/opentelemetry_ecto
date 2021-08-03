@@ -18,6 +18,9 @@ defmodule OpentelemetryEcto do
     * `:time_unit` - a time unit used to convert the values of query phase
       timings, defaults to `:microsecond`. See `System.convert_time_unit/3`
 
+    * `:sampler` - an `:otel.sampler()` or a function that accepts the Ecto
+      Telemetry metadata and returns `:otel.sampler() | nil`.
+
     * `:span_prefix` - the first part of the span name, as a `String.t`,
       defaults to the concatenation of the event name with periods, e.g.
       `"blog.repo.query"`. This will always be followed with a colon and the
@@ -35,11 +38,12 @@ defmodule OpentelemetryEcto do
   def handle_event(
         event,
         measurements,
-        %{query: query, source: source, result: query_result, repo: repo, type: type},
+        %{query: query, source: source, result: query_result, repo: repo, type: type} = meta,
         config
       ) do
     # Doing all this even if the span isn't sampled so the sampler
     # could technically use the attributes to decide if it should sample or not
+    # (using the `sampler` option)
 
     total_time = measurements.total_time
     end_time = :opentelemetry.timestamp()
@@ -97,7 +101,17 @@ defmodule OpentelemetryEcto do
         {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
-    s = OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time, attributes: attributes ++ base_attributes})
+    sampler =
+      case Keyword.fetch(config, :sampler) do
+        {:ok, sampler_fn} when is_function(sampler_fn) -> sampler_fn.(meta)
+        {:ok, sampler} -> sampler
+        :error -> nil
+      end
+
+    opts = %{start_time: start_time, attributes: attributes ++ base_attributes}
+    opts = if sampler, do: Map.put(opts, :sampler, sampler), else: opts
+
+    s = OpenTelemetry.Tracer.start_span(span_name, opts)
 
     OpenTelemetry.Span.end_span(s)
   end

@@ -79,18 +79,30 @@ defmodule OpentelemetryEctoTest do
     assert_receive {:span, span(name: "Ecto:users")}
   end
 
-  test "collects multiple spans" do
-    user = Repo.insert!(%User{email: "opentelemetry@erlang.org"})
-    Repo.insert!(%Post{body: "We got traced!", user: user})
+  test "accepts sampler function option" do
+    always_on = :otel_sampler.setup({:always_on, %{}})
+    always_off = :otel_sampler.setup({:always_off, %{}})
 
-    attach_handler()
+    attach_handler(
+      sampler: fn
+        %{source: "users"} -> always_on
+        %{source: "posts"} -> always_off
+      end
+    )
 
-    User
-    |> Repo.all()
-    |> Repo.preload([:posts])
+    Repo.all(User)
+    Repo.all(Post)
 
     assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
-    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts")}
+    refute_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts")}
+  end
+
+  test "sampler function option nil value allowed" do
+    attach_handler(sampler: fn _ -> nil end)
+
+    Repo.all(User)
+
+    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
   end
 
   def attach_handler(config \\ []) do
