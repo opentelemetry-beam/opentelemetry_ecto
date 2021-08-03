@@ -18,8 +18,8 @@ defmodule OpentelemetryEcto do
     * `:time_unit` - a time unit used to convert the values of query phase
       timings, defaults to `:microsecond`. See `System.convert_time_unit/3`
 
-    * `:sampler` - an `:otel_sampler.t()` or a function that accepts the Ecto
-      Telemetry metadata and returns `:otel_sampler.t() | nil`.
+    * `:sampler_for` - a function that accepts the Ecto Telemetry metadata and
+      returns `{:sampler, :otel_sampler.t()} | :no_sampler`.
 
     * `:span_prefix` - the first part of the span name, as a `String.t`,
       defaults to the concatenation of the event name with periods, e.g.
@@ -101,18 +101,25 @@ defmodule OpentelemetryEcto do
         {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
-    sampler =
-      case Keyword.fetch(config, :sampler) do
-        {:ok, sampler_fn} when is_function(sampler_fn) -> sampler_fn.(meta)
-        {:ok, sampler} -> sampler
-        :error -> nil
+    opts =
+      %{start_time: start_time, attributes: attributes ++ base_attributes}
+      |> maybe_put_sampler(measurements, meta, config)
+
+    OpenTelemetry.Tracer.start_span(span_name, opts)
+    |> OpenTelemetry.Span.end_span()
+  end
+
+  defp maybe_put_sampler(opts, measurements, meta, config) do
+    if sampler_for = Keyword.get(config, :sampler_for) do
+      sampler = sampler_for.(%{measurements: measurements, meta: meta})
+
+      case sampler do
+        {:sampler, sampler} -> Map.put(opts, :sampler, sampler)
+        :no_sampler -> opts
+        _ -> raise ArgumentError, "expected to get {:sampler, otel_sampler.t()} or :no_sampler but got #{inspect(sampler)}"
       end
-
-    opts = %{start_time: start_time, attributes: attributes ++ base_attributes}
-    opts = if sampler, do: Map.put(opts, :sampler, sampler), else: opts
-
-    s = OpenTelemetry.Tracer.start_span(span_name, opts)
-
-    OpenTelemetry.Span.end_span(s)
+    else
+      opts
+    end
   end
 end

@@ -79,14 +79,32 @@ defmodule OpentelemetryEctoTest do
     assert_receive {:span, span(name: "Ecto:users")}
   end
 
-  test "accepts sampler function option" do
+  test "sampler function option with {:sampler, ...} value" do
+    always_off = :otel_sampler.setup({:always_off, %{}})
+
+    attach_handler(sampler_for: fn _ -> {:sampler, always_off} end)
+
+    Repo.all(User)
+
+    refute_receive {:span, _}
+  end
+
+  test "sampler function option with :no_sampler value" do
+    attach_handler(sampler_for: fn _ -> :no_sampler end)
+
+    Repo.all(User)
+
+    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
+  end
+
+  test "sampler function option gets metadata" do
     always_on = :otel_sampler.setup({:always_on, %{}})
     always_off = :otel_sampler.setup({:always_off, %{}})
 
     attach_handler(
-      sampler: fn
-        %{source: "users"} -> always_on
-        %{source: "posts"} -> always_off
+      sampler_for: fn
+        %{meta: %{source: "users"}} -> {:sampler, always_on}
+        %{meta: %{source: "posts"}} -> {:sampler, always_off}
       end
     )
 
@@ -97,8 +115,16 @@ defmodule OpentelemetryEctoTest do
     refute_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts")}
   end
 
-  test "sampler function option nil value allowed" do
-    attach_handler(sampler: fn _ -> nil end)
+  test "sampler function option gets measurements" do
+    always_on = :otel_sampler.setup({:always_on, %{}})
+    always_off = :otel_sampler.setup({:always_off, %{}})
+
+    attach_handler(
+      sampler_for: fn
+        %{measurements: %{query_time: query_time}} when query_time > 0 -> {:sampler, always_on}
+        _ -> {:sampler, always_off}
+      end
+    )
 
     Repo.all(User)
 
