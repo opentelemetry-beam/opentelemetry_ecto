@@ -18,8 +18,8 @@ defmodule OpentelemetryEcto do
     * `:time_unit` - a time unit used to convert the values of query phase
       timings, defaults to `:microsecond`. See `System.convert_time_unit/3`
 
-    * `:sampler_for` - a function that accepts the Ecto Telemetry metadata and
-      returns `{:sampler, :otel_sampler.t()} | :no_sampler`.
+    * `:sampler_for` - a function that accepts the Ecto Telemetry measurements
+      and metadata and returns `{:sampler, :otel_sampler.t()} | :no_sampler`.
 
     * `:span_prefix` - the first part of the span name, as a `String.t`,
       defaults to the concatenation of the event name with periods, e.g.
