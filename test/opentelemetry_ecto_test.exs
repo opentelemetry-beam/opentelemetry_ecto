@@ -79,56 +79,44 @@ defmodule OpentelemetryEctoTest do
     assert_receive {:span, span(name: "Ecto:users")}
   end
 
-  test "sampler function option with {:sampler, ...} value" do
-    always_off = :otel_sampler.setup({:always_off, %{}})
+  test "sampler option" do
+    always_on = :otel_sampler.setup(:always_on)
+    always_off = :otel_sampler.setup(:always_off)
 
-    attach_handler(sampler_for: fn _ -> {:sampler, always_off} end)
+    # when https://github.com/open-telemetry/opentelemetry-erlang/pull/260 is released you should
+    # use :otel_sampler.new(&sample/7, "my sampler", :my_opts) to create the sampler
+    attach_handler(sampler: {&sample/7, "my sampler", :my_opts})
 
-    Repo.all(User)
-
-    refute_receive {:span, _}
-  end
-
-  test "sampler function option with :no_sampler value" do
-    attach_handler(sampler_for: fn _ -> :no_sampler end)
-
-    Repo.all(User)
-
-    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
-  end
-
-  test "sampler function option gets metadata" do
-    always_on = :otel_sampler.setup({:always_on, %{}})
-    always_off = :otel_sampler.setup({:always_off, %{}})
-
-    attach_handler(
-      sampler_for: fn
-        %{meta: %{source: "users"}} -> {:sampler, always_on}
-        %{meta: %{source: "posts"}} -> {:sampler, always_off}
-      end
-    )
-
-    Repo.all(User)
-    Repo.all(Post)
+    OpenTelemetry.Tracer.with_span "foo" do
+      Repo.all(User)
+      Repo.all(Post)
+      Repo.all(User)
+    end
 
     assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
     refute_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts")}
+    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
   end
 
-  test "sampler function option gets measurements" do
-    always_on = :otel_sampler.setup({:always_on, %{}})
-    always_off = :otel_sampler.setup({:always_off, %{}})
+  defp sample(ctx, trace_id, links, span_name, span_kind, attributes, opts) do
+    assert opts == :my_opts
+    IO.inspect(%{
+      ctx: ctx,
+      trace_id: trace_id,
+      links: links,
+      span_name: span_name,
+      span_kind: span_kind,
+      attributes: attributes,
+      opts: opts
+    })
 
-    attach_handler(
-      sampler_for: fn
-        %{measurements: %{query_time: query_time}} when query_time > 0 -> {:sampler, always_on}
-        _ -> {:sampler, always_off}
+    decision =
+      case Keyword.fetch!(attributes, :source) do
+        "users" -> :record_and_sample
+        "posts" -> :drop
       end
-    )
 
-    Repo.all(User)
-
-    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
+    {decision, [], []}
   end
 
   def attach_handler(config \\ []) do
