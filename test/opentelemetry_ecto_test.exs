@@ -80,20 +80,45 @@ defmodule OpentelemetryEctoTest do
   end
 
   test "sampler option" do
-    # when https://github.com/open-telemetry/opentelemetry-erlang/pull/260 is released you should
-    # use :otel_sampler.new(&sample/7, "my sampler", :my_opts) to create the sampler
-    attach_handler(sampler: {&sample/7, "my sampler", :my_opts})
+    attach_handler(sampler: my_sampler())
 
-    OpenTelemetry.Tracer.with_span "foo" do
-      Repo.all(User)
-      Repo.all(Post)
-      Repo.all(User)
-    end
+    Repo.all(User)
+    Repo.all(Post)
+    Repo.all(User)
 
     assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
     refute_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts")}
     assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
   end
+
+  test "sampler option with function" do
+    always_on = :otel_sampler.setup(:always_on)
+    always_off = :otel_sampler.setup(:always_off)
+
+    attach_handler(
+      sampler: fn
+        %{measurements: %{total_time: total_time}, meta: %{source: source}} ->
+          assert total_time > 0
+
+          case source do
+            "users" -> always_on
+            "posts" -> always_off
+          end
+      end
+    )
+
+    Repo.all(User)
+    Repo.all(Post)
+    Repo.all(User)
+
+    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
+    refute_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:posts")}
+    assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
+  end
+
+  # when https://github.com/open-telemetry/opentelemetry-erlang/pull/260 is released you should
+  # use :otel_sampler.new(&sample/7, "my sampler", :my_opts) to create the sampler
+  defp my_sampler, do: {&sample/7, "my sampler", :my_opts}
 
   defp sample(_ctx, _trace_id, _links, _span_name, _span_kind, attributes, opts) do
     assert opts == :my_opts

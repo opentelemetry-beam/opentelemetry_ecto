@@ -5,6 +5,15 @@ defmodule OpentelemetryEcto do
 
   require OpenTelemetry.Tracer
 
+  @type setup_opts :: [time_unit() | sampler() | span_prefix()]
+
+  @type time_unit :: {:time_unit, System.time_unit()}
+  @type sampler :: {:sampler, :otel_sampler.t() | sampler_fun() | nil}
+  @type span_prefix :: {:span_prefix, String.t()}
+
+  @type telemetry_data :: %{measurements: map(), meta: map()}
+  @type sampler_fun :: (telemetry_data() -> :otel_sampler.t() | nil)
+
   @doc """
   Attaches the OpentelemetryEcto handler to your repo events. This should be called
   from your application behaviour on startup.
@@ -16,15 +25,18 @@ defmodule OpentelemetryEcto do
   You may also supply the following options in the second argument:
 
     * `:time_unit` - a time unit used to convert the values of query phase
-      timings, defaults to `:microsecond`. See `System.convert_time_unit/3`
+      timings, defaults to `:microsecond`. See `System.convert_time_unit/3`.
 
-    * `:sampler` - an optional :otel_sampler.t()
+    * `:sampler` - an optional sampler or sampler function to use when creating
+       spans. The function accepts the Ecto Telemetry measurements and metadata
+       and decides whether to use a sampler or not.
 
     * `:span_prefix` - the first part of the span name, as a `String.t`,
       defaults to the concatenation of the event name with periods, e.g.
       `"blog.repo.query"`. This will always be followed with a colon and the
       source (the table name for SQL adapters).
   """
+  @spec setup(String.t(), setup_opts()) :: :ok | {:error, :already_exists}
   def setup(event_prefix, config \\ []) do
     # register the tracer. just re-registers if called for multiple repos
     _ = OpenTelemetry.register_application_tracer(:opentelemetry_ecto)
@@ -37,7 +49,7 @@ defmodule OpentelemetryEcto do
   def handle_event(
         event,
         measurements,
-        %{query: query, source: source, result: query_result, repo: repo, type: type},
+        %{query: query, source: source, result: query_result, repo: repo, type: type} = meta,
         config
       ) do
     # Doing all this even if the span isn't sampled so the sampler
@@ -100,13 +112,21 @@ defmodule OpentelemetryEcto do
         {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
+    sampler = get_sampler(config[:sampler], %{measurements: measurements, meta: meta})
+
     opts =
       %{start_time: start_time, attributes: attributes ++ base_attributes}
-      |> maybe_put_sampler(config[:sampler])
+      |> maybe_put_sampler(sampler)
 
     OpenTelemetry.Tracer.start_span(span_name, opts)
     |> OpenTelemetry.Span.end_span()
   end
+
+  defp get_sampler(sampler_fun, telemetry_data) when is_function(sampler_fun) do
+    sampler_fun.(telemetry_data)
+  end
+
+  defp get_sampler(sampler, _telemetry_data), do: sampler
 
   defp maybe_put_sampler(opts, sampler) do
     if sampler == nil do
