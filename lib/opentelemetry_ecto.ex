@@ -11,8 +11,8 @@ defmodule OpentelemetryEcto do
   @type sampler :: {:sampler, :otel_sampler.t() | sampler_fun() | nil}
   @type span_prefix :: {:span_prefix, String.t()}
 
-  @type telemetry_data :: %{measurements: map(), meta: map()}
   @type sampler_fun :: (telemetry_data() -> :otel_sampler.t() | nil)
+  @type telemetry_data :: %{measurements: map(), meta: map()}
 
   @doc """
   Attaches the OpentelemetryEcto handler to your repo events. This should be called
