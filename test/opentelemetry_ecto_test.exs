@@ -100,15 +100,6 @@ defmodule OpentelemetryEctoTest do
 
   defp sample(ctx, trace_id, links, span_name, span_kind, attributes, opts) do
     assert opts == :my_opts
-    IO.inspect(%{
-      ctx: ctx,
-      trace_id: trace_id,
-      links: links,
-      span_name: span_name,
-      span_kind: span_kind,
-      attributes: attributes,
-      opts: opts
-    })
 
     decision =
       case Keyword.fetch!(attributes, :source) do
