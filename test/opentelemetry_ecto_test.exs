@@ -80,9 +80,6 @@ defmodule OpentelemetryEctoTest do
   end
 
   test "sampler option" do
-    always_on = :otel_sampler.setup(:always_on)
-    always_off = :otel_sampler.setup(:always_off)
-
     # when https://github.com/open-telemetry/opentelemetry-erlang/pull/260 is released you should
     # use :otel_sampler.new(&sample/7, "my sampler", :my_opts) to create the sampler
     attach_handler(sampler: {&sample/7, "my sampler", :my_opts})
@@ -98,7 +95,7 @@ defmodule OpentelemetryEctoTest do
     assert_receive {:span, span(name: "opentelemetry_ecto.test_repo.query:users")}
   end
 
-  defp sample(ctx, trace_id, links, span_name, span_kind, attributes, opts) do
+  defp sample(_ctx, _trace_id, _links, _span_name, _span_kind, attributes, opts) do
     assert opts == :my_opts
 
     decision =

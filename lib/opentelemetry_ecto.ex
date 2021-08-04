@@ -37,7 +37,7 @@ defmodule OpentelemetryEcto do
   def handle_event(
         event,
         measurements,
-        %{query: query, source: source, result: query_result, repo: repo, type: type} = meta,
+        %{query: query, source: source, result: query_result, repo: repo, type: type},
         config
       ) do
     # Doing all this even if the span isn't sampled so the sampler
