@@ -97,14 +97,15 @@ defmodule OpentelemetryEcto do
         {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
-    parent_context_attached = maybe_attach_parent_context()
+    parent_context_attach_result = maybe_attach_parent_context()
 
     s = OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time, attributes: attributes ++ base_attributes})
 
     OpenTelemetry.Span.end_span(s)
 
-    if parent_context_attached do
-      OpenTelemetry.Ctx.clear()
+    case parent_context_attach_result do
+      {:ok, ctx} -> OpenTelemetry.Ctx.detach(ctx)
+      _ -> :ok
     end
   end
 
@@ -112,8 +113,7 @@ defmodule OpentelemetryEcto do
     with :ok <- with_no_context_set?(),
          {:ok, parent_pid} <- with_parent_pid(),
          {:ok, parent_context} <- with_parent_otel_context(parent_pid) do
-      OpenTelemetry.Ctx.attach(parent_context)
-      true
+      {:ok, OpenTelemetry.Ctx.attach(parent_context)}
     end
   end
 
