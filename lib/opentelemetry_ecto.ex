@@ -63,6 +63,7 @@ defmodule OpentelemetryEcto do
       end <> ":#{source}"
 
     time_unit = Keyword.get(config, :time_unit, :microsecond)
+    reporting_threshold_ms = Keyword.get(config, :reporting_threshold_ms, 5)
 
     db_type =
       case type do
@@ -97,8 +98,23 @@ defmodule OpentelemetryEcto do
         {String.to_atom("#{k}_#{time_unit}s"), System.convert_time_unit(v, :native, time_unit)}
       end)
 
-    s = OpenTelemetry.Tracer.start_span(span_name, %{start_time: start_time, attributes: attributes ++ base_attributes})
+    case check_treshold(total_time, reporting_threshold_ms, time_unit) do
+      true ->
+        s =
+          OpenTelemetry.Tracer.start_span(span_name, %{
+            start_time: start_time,
+            attributes: attributes ++ base_attributes
+          })
 
-    OpenTelemetry.Span.end_span(s)
+        OpenTelemetry.Span.end_span(s)
+
+      false ->
+        :ok
+    end
   end
+
+  defp check_treshold(total_time, reporting_threshold_ms, time_unit),
+    do:
+      System.convert_time_unit(total_time, :native, time_unit) >
+        System.convert_time_unit(reporting_threshold_ms, :millisecond, time_unit)
 end
