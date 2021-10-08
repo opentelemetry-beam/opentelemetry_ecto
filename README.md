@@ -1,5 +1,9 @@
 # OpentelemetryEcto
 
+## This project has moved!
+
+**This project now lives at https://github.com/open-telemetry/opentelemetry-erlang-contrib.**
+
 Telemetry handler that creates Opentelemetry spans from Ecto query events. Because
 Ecto emits telemetry events only after queries have finished, OpentelemetryEcto
 estimates the start time of the span by subtracting the reported total duration
